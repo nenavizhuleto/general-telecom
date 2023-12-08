@@ -1,0 +1,57 @@
+{{ block "main" . }}
+<div class="wrapper">
+  <div class="table-container">
+    <div class="table-row heading">
+      <div class="row-item">Name</div>
+      <div class="row-item">Author</div>
+      <div class="row-item">Description</div>
+      <div class="row-item">Action</div>
+    </div>
+    {{ range .Scripts }} {{ template "scriptCard" . }} {{ end }}
+  </div>
+  <pre class="terminal" id="terminal">
+  <button type="button" id="clearBtn" class="button run-button">Clear</button>
+  <p class="htmx-indicator" id="indicator">Executing...</p>
+    <div id="output">
+    {{ block "code" . }}
+    <code>
+        {{ .Message }}
+        {{ if .Out }}
+            <p>Output:</p>
+            {{ .Out }}
+        {{ end }}
+        {{ if .Err }}
+            <p>Error:</p>
+            {{ .Err }}
+        {{ end }}
+    </code>
+    {{ end }}
+    </div>
+    </pre>
+</div>
+{{ end }} {{ block "scriptCard" . }}
+<div class="table-row">
+  <div class="row-item">{{ .Name }}</div>
+  <div class="row-item">{{ .Author }}</div>
+  <div class="row-item">{{ .Description }}</div>
+  <div class="row-item">
+    <button
+      hx-post="/run/{{ .Filename }}"
+      hx-swap="afterbegin"
+      hx-target="#output"
+      {{
+      if
+      .Color
+      }}
+      style="background-color: {{ .Color }}"
+      {{
+      end
+      }}
+      hx-indicator="#indicator"
+      class="button run-button"
+    >
+      RUN
+    </button>
+  </div>
+</div>
+{{ end }}
