@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<style>
+			body {
+				display: flex;
+				height: 100vh;
+				font-size: larger;
+			}
+			.container {
+				display: flex;
+				flex-direction: column;
+				width: 400px;
+				margin: auto;
+			}
+		</style>
+		<title>LX IM & PM Decoder</title>
+	</head>
+	<body>
+		<div class="container">
+			<h1>Decoder</h1>
+			<label for="status-code">Status Code</label>
+			<input id="status-code" type="text" />
+			<label>Device</label>
+			<div>
+				<input type="radio" name="device" title="PM" value="PM" checked />
+				PM
+				<input type="checkbox" name="SYMP4KI" />
+				SYMP4KI
+			</div>
+			<div>
+				<input type="radio" name="device" title="MIM5" value="MIM5" />
+				MIM5
+			</div>
+			<button id="decodeBtn">Decode</button>
+			<div id="response"></div>
+		</div>
+		<script>
+			const status_code_field = document.getElementById('status-code');
+			const decodeBtn = document.getElementById('decodeBtn');
+			const deviceRadBtns = document.getElementsByName('device');
+
+			const jsonToTable = (data) => {
+				const tables = [];
+				for (key of Object.keys(data)) {
+					// console.log(Object.keys(data));
+					const table = document.createElement('table');
+					const head = document.createElement('thead');
+					const row = document.createElement('tr');
+					const header = document.createElement('th');
+					header.innerHTML = key;
+					row.append(header);
+					head.append(row);
+
+					const body = document.createElement('tbody');
+					for (val of Object.keys(data[key])) {
+						const row = document.createElement('tr');
+						const td = document.createElement('td');
+						td.innerHTML = `${val} = ${data[key][val]}`;
+						row.append(td);
+						body.append(row);
+					}
+					table.append(head);
+					table.append(body);
+
+					tables.push(table);
+				}
+
+				return tables;
+			};
+
+			const handleResponse = async (data) => {
+				const text = await data.json();
+				const tables = jsonToTable(text);
+				tables.forEach((table) => document.getElementById('response').append(table));
+			};
+
+			const decode = () => {
+				const status = status_code_field.value;
+				let device;
+				deviceRadBtns.forEach((v) => {
+					if (v.checked) {
+						device = v.value;
+					}
+				});
+				const symp4ki = document.getElementsByName('SYMP4KI')[0].checked;
+				fetch('http://127.0.0.1:5000/decode', {
+					method: 'POST',
+					body: JSON.stringify({
+						status: status,
+						device: device,
+						SYMP4KI: symp4ki,
+					}),
+					headers: { 'Content-Type': 'application/json' },
+				}).then((data) => handleResponse(data));
+			};
+
+			decodeBtn.addEventListener('click', (e) => {
+				e.preventDefault();
+				decode();
+			});
+
+			status_code_field.addEventListener('keydown', (e) => {
+				if (e.key == 'Enter') {
+					decode();
+				}
+			});
+		</script>
+	</body>
+</html>
