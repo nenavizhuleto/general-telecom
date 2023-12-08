@@ -1,0 +1,15 @@
+#!/bin/bash
+EXTEN=$1
+CALLERID=$2
+gates=$(cat /pbx/scripts/gates)
+gatesArray=($gates)
+if printf '%s\0' "${gatesArray[@]}" | grep -Fxqz -- "$CALLERID";
+then
+	url="https://smartuk.ru/sip/call?Identifier=legion&Number=$EXTEN&panel=$CALLERID"
+else
+	url="https://smartuk.ru/sip/call?Identifier=legion&Number=$EXTEN"
+fi
+
+# echo "$url" >> /pbx/scripts/smartuk.logs
+
+curl -XGET "$url" > /dev/null &
