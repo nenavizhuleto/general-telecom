@@ -1,0 +1,4 @@
+#!/bin/bash
+gates=$(mysql -ugolos -p$1 -Dgolos -e "select sipusername from device where type = 2" | grep '^[0-9]')
+
+echo "${gates[@]}" > $PWD/gates
