@@ -1,0 +1,92 @@
+#!/bin/bash
+
+CONFIG_PATH=/etc/ssl_expire
+CONFIG_FILE=ssl_expire.conf
+SERVICE_PATH=/etc/systemd/system
+SERVICE_NAME=ssl_expire_mon.service
+BIN_PATH=/usr/bin
+BIN_MAIN_NAME=ssl_expire
+BIN_MON_NAME=ssl_expire_mon
+
+function createconfig ()
+{
+    echo "Creating configuration file $CONFIG_PATH/$CONFIG_FILE ..."
+    if [[ ! -d "$CONFIG_PATH" ]]
+    then
+        mkdir "$CONFIG_PATH"
+    fi
+    echo "
+# Configuration file for ssl expire monitoring system
+ZabbixServer=127.0.0.1
+Hostname=SSL_EXPIRE
+# Websites=(google.com github.com)
+Websites=()
+# Time until next query (use suffixes 's' for seconds, 'm' for minutes, 'h' for hours, 'd' for days)
+# SleepFor=1d
+SleepFor=10s
+    " > "$CONFIG_PATH"/"$CONFIG_FILE"
+    echo "Default configuration is created"
+}
+
+function createmon () 
+{
+    local config=
+    if [ ""="$config" ]
+    then
+        config="$CONFIG_FILE"
+        echo "Creating service based on default configuration"
+    else
+        config="$1"
+        echo "Creating service based on $1 configuration"
+    fi
+
+    cp ./ssl_expire "$BIN_PATH"/
+
+    echo "#!/bin/bash
+
+CONFIG_PATH=$CONFIG_PATH
+CONFIG_FILE=$config
+
+source \"\$CONFIG_PATH\"/\"\$CONFIG_FILE\"
+
+while [ : ]
+do
+    for site in \${Websites[@]}; do
+        data=\$(ssl_expire --ip \"\$site\")
+        zabbix_sender -z \"\$ZabbixServer\" -s \"\$Hostname\" -k \$(echo \"\$site\" | cut -d\".\" -f 1) -o \"\$data\"
+        sleep 1
+    done
+    sleep \"\$SleepFor\"
+done" > "$BIN_PATH"/"$BIN_MON_NAME"
+
+    chmod +x "$BIN_PATH"/"$BIN_MON_NAME"
+
+}
+
+function createservice ()
+{
+    
+    echo "
+[Unit]
+Description=Monitoring of web site ssl expiration date and sending it to zabbix server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=ssl_expire_mon
+
+[Install]
+WantedBy=multi-user.target
+    " > "$SERVICE_PATH"/"$SERVICE_NAME"
+}
+
+function main () 
+{
+    createconfig
+
+    createmon
+
+    createservice
+}
+
+main
